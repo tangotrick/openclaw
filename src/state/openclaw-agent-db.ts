@@ -260,6 +260,15 @@ export function openOpenClawAgentDatabase(
         foreignKeys: true,
         synchronous: "NORMAL",
       });
+      // PR #perf-cache: same page cache + mmap as memory DB
+      try {
+        const cacheKB = Number(process.env.MEMORY_DB_CACHE_KB) || 200_000;
+        const mmapBytes = Number(process.env.MEMORY_DB_MMAP_BYTES) || 268_435_456;
+        db.exec(`PRAGMA cache_size = ${cacheKB};`);
+        db.exec(`PRAGMA mmap_size = ${mmapBytes};`);
+      } catch (pragmaErr) {
+        // best-effort
+      }
       ensureAgentSchema(db, agentId, pathname);
       return maintenance;
     } catch (err) {

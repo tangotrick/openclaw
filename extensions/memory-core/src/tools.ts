@@ -46,7 +46,13 @@ type MemoryManagerContext = Awaited<ReturnType<typeof getMemoryManagerContextWit
 type ActiveMemoryManagerContext = Extract<MemoryManagerContext, { manager: unknown }>;
 type QmdRuntimeDebug = NonNullable<MemorySearchRuntimeDebug["qmd"]>;
 
-const MEMORY_SEARCH_TOOL_TIMEOUT_MS = 15_000;
+// PR #perf-cache: env-var override for memory_search tool timeout (default 60s)
+const DEFAULT_MEMORY_SEARCH_TOOL_TIMEOUT_MS = 60_000;
+const MEMORY_SEARCH_TOOL_TIMEOUT_MS = (() => {
+  const raw = process.env.MEMORY_SEARCH_TOOL_TIMEOUT_MS;
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MEMORY_SEARCH_TOOL_TIMEOUT_MS;
+})();
 const MEMORY_SEARCH_TOOL_COOLDOWN_MS = 60_000;
 
 const memorySearchToolCooldowns = new Map<string, { until: number; error: string }>();
