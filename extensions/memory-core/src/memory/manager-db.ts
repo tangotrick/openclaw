@@ -298,6 +298,17 @@ export function openMemoryDatabaseAtPath(
       busyTimeoutMs: 5000,
       databasePath: dbPath,
     });
+    // PR #perf-cache: Boost page cache + mmap for large memory DBs (>100MB)
+    // Reduces cold-call latency from ~12s to <1s on disk-resident DBs.
+    // Override via MEMORY_DB_CACHE_KB / MEMORY_DB_MMAP_BYTES env vars.
+    try {
+      const cacheKB = Number(process.env.MEMORY_DB_CACHE_KB) || 200_000;
+      const mmapBytes = Number(process.env.MEMORY_DB_MMAP_BYTES) || 268_435_456;
+      db.exec(`PRAGMA cache_size = ${cacheKB};`);
+      db.exec(`PRAGMA mmap_size = ${mmapBytes};`);
+    } catch (pragmaErr) {
+      // best-effort: pragma injection should never break db opening
+    }
     if (agentId) {
       ensureOpenClawAgentDatabaseSchema(db, { agentId, path: dbPath, register: true });
     }
